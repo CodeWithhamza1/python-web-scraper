@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="icon" href="{{ url_for('static', filename='data-storage.png') }}">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Scrap data using this free scraping tool. No tension for creating accounts on premium websties.">
+    <meta name="keywords" content="scrap,web scraper,python scraper,python">
+    <meta name="author" content="{author}">
+    <title>Web Scraper - A Free Tool</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+</head>
+    <style>
+.floating {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 999;
+    animation: float 1.5s linear infinite;
+}
+
+/* Keyframes for floating animation */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+    </style>
+<body>
+    <div class="container">
+        <h1 class="mt-5 mb-3">Web Scraper</h1>
+        <form id="scrapeForm">
+            <div class="form-group">
+                <label for="urlInput">URL:</label>
+                <input type="text" class="form-control" id="urlInput" name="url" placeholder="Enter URL">
+            </div>
+            <div class="form-group">
+                <label for="classesInput">Classes:</label>
+                <input type="text" class="form-control" id="classesInput" name="classes" placeholder="class1, class2">
+            </div>
+            <div class="form-group">
+                <label for="elementsInput">Elements (comma-separated):</label>
+                <input type="text" class="form-control" id="elementsInput" name="elements" placeholder="e.g., div,span">
+            </div>
+            <div class="form-group">
+                <label for="limitInput">Limit:</label>
+                <input type="number" class="form-control" id="limitInput" name="limit" placeholder="Limit results (Default: 10000)">
+            </div>
+            <button type="button" class="btn btn-primary" id="scrapeButton">Scrape</button>
+            <button type="button" class="btn btn-success" id="downloadButton" style="display: none;">Beautify & Download CSV</button>
+            <div class="progress mt-3" style="display: none;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+            </div>
+            <div id="scrapedData" class="mt-3 mb-3"></div>
+            
+        </form>
+        <button id="helpButton" class="btn btn-danger font-weight-bold rounded-circle floating" data-toggle="modal" data-target="#helpModal">?</button>
+        <div class="modal fade" id="helpModal" tabindex="-1" role="dialog" aria-labelledby="helpModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="helpModalLabel">How to Use the Tool</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Add your instructions here -->
+                        <p>1. <b>Enter the URL:</b> Start by entering the URL of the web page you want to scrape. Make sure to provide the complete and accurate address of the page you wish to extract data from.</p>
+                        <p>2. <b>Specify Target Content:</b> You can narrow down your data extraction by specifying HTML elements and/or CSS classes. This allows you to precisely target specific content on the web page, such as text, images, or other HTML elements.</p>
+                        <p>3. <b>Set Result Limit (Optional):</b> If you want to control the number of results you retrieve, you can set a limit. This step is optional, and you can choose to scrape all available data by leaving this field empty.</p>
+                        <p>4. <b>Scrape Data:</b> Click the "Scrape" button to initiate the scraping process. The tool will dynamically fetch the content from the web page based on your provided URL and target parameters.</p>
+                        <p>5. <b>View Raw Data:</b> After scraping, you will be presented with the raw data. This data reflects the content extracted from the web page, exactly as it appears in the HTML source. You can review and analyze this data directly on the tool's interface.</p>
+                        <p>6. <b>Download in CSV Format:</b> If you prefer a more structured and organized format for your data, you have the option to download it in CSV format. The tool will automatically beautify and format the data, making it suitable for use in spreadsheets, data analysis, or further processing.</p>
+                        <p><b>Note: (The CSV download feature is designed to enhance the readability and usability of the scraped data by formatting it into rows and columns, making it more convenient for your specific needs :-)</b></p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function() {
+    $("#scrapeButton").click(function() {
+        var url = $("#urlInput").val();
+        var classes = $("#classesInput").val();
+        var elements = $("#elementsInput").val();
+        var limit = $("#limitInput").val();
+
+        if (url === "") {
+            $("#scrapedData").html("<p class='text-danger'>URL cannot be empty</p>");
+            return;
+        }
+
+        var progressBar = $(".progress");
+        progressBar.show();
+
+        // Remove 'limit' parameter if it's not specified
+        var dataToSend = { url: url, classes: classes, elements: elements };
+        if (limit) {
+            dataToSend.limit = limit;
+        }
+
+        $.post("/scrape", dataToSend, function(response) {
+            progressBar.hide();
+            if (response.error) {
+                $("#scrapedData").html("<p class='text-danger'>" + response.error + "</p>");
+            } else {
+                $("#scrapedData").html(response.data);
+                $("#downloadButton").show();
+            }
+        });
+    });
+
+    $("#downloadButton").click(function() {
+        var url = $("#urlInput").val();
+        var classes = $("#classesInput").val();
+        var elements = $("#elementsInput").val();
+        var limit = $("#limitInput").val();
+        if (url === "") {
+            return;
+        }
+        // Include 'limit' parameter if it's specified
+        if (limit) {
+            window.location = `/download?url=${encodeURIComponent(url)}&classes=${encodeURIComponent(classes)}&elements=${encodeURIComponent(elements)}&limit=${limit}`;
+        } else {
+            window.location = `/download?url=${encodeURIComponent(url)}&classes=${encodeURIComponent(classes)}&elements=${encodeURIComponent(elements)}`;
+        }
+    });
+});
+
+    </script>
+</body>
+</html>
